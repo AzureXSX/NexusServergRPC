@@ -24,7 +24,7 @@ namespace NexusServergRPC.Auth
             Task.Delay(TimeSpan.FromSeconds(timeDifferenceInSeconds.TotalSeconds)).ContinueWith(_ =>
             {
                 Task t = new Task(() => {
-                    NexusService.Server.RemoveToken(_token);
+                    NexusService.Server?.RemoveToken(_token);
                 });
                 t.Start();
             });

@@ -37,35 +37,6 @@ public class Nexus_Server
     public Nexus_Server(NexusTokenIssuer issuer)
     {
         _issuer = issuer;
-
-        Console.WriteLine("TOKENS");
-
-        Task.Run(() => _issuer.IssueToken("Azure"));
-        //for(int i = 0; i < 10; i++)
-        //{
-        //    users.Add(new User<LoginUserRequest, LoginUserResponse>());
-        //}
-
-        //Task.Run(async () => {
-        //    while(true)
-        //    {
-        //        await Console.Out.WriteLineAsync(users.Count + "");
-        //        foreach (var user in ObjectCaster<LoginUserRequest, LoginUserResponse>.Cast(users))
-        //        {
-        //            await Console.Out.WriteLineAsync(user.response_stream + "");
-        //            try
-        //            {
-        //                await user.response_stream.WriteAsync(new LoginUserResponse { Response = true });
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                Console.WriteLine($"Error sending message: {ex.Message}");
-        //                Console.WriteLine($"Error sending message: {user.GetEmail}");
-        //            }
-        //        }
-        //        Thread.Sleep(1500);
-        //    }
-        //});
     }
 
 

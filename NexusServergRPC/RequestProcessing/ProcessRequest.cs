@@ -105,7 +105,6 @@ namespace NexusServergRPC.RequestProcessing
                     {
                         await Console.Out.WriteLineAsync(item.UserName);
                     }
-                    await Console.Out.WriteAsync("SOMETHING");
                     Thread.Sleep(1000);
                 }
                 await Console.Out.WriteLineAsync("ENDED LOGIN");
@@ -137,7 +136,7 @@ namespace NexusServergRPC.RequestProcessing
             {
                 while (await requestStream.MoveNext())
                 {
-                    Thread.Sleep(1000);
+                    break;
                 }
                 await Console.Out.WriteLineAsync("CLOSED LOGIN");
             }

@@ -20,7 +20,7 @@ namespace NexusServergRPC.Auth
         {
             var key = Encoding.UTF8.GetBytes(_configuration["Keys:JWT"]);
 
-            return new NexusToken(Convert.ToBase64String(key), username, DateTime.Now.AddSeconds(10));
+            return new NexusToken(Convert.ToBase64String(key), username, DateTime.Now.AddDays(1));
         }
 
 

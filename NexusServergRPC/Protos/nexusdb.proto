@@ -47,7 +47,8 @@ message LoginUserRequest{
 }
 
 message LoginUserResponse{
-    bool Response = 1;
+    string ResponseMessage = 1;
+    bool Response = 2;
 }
 
 message SignUpRequest{

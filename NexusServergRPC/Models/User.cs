@@ -12,12 +12,26 @@ public class User<Trequest, Tresponse>
     public IAsyncStreamReader<Trequest> request_stream;
     public IServerStreamWriter<Tresponse> response_stream;
 
+    public Task? Task { get; set; }
+
     public User(string? userName, string? userEmail, IAsyncStreamReader<Trequest> request_stream, IServerStreamWriter<Tresponse> response_stream)
     {
         UserName = userName;
         UserEmail = userEmail;
         this.request_stream = request_stream;
         this.response_stream = response_stream;
+    }
+
+    public async Task SetTask(Task task)
+    {
+        Task = task;
+        await Task;
+    }
+
+    public async void Terminate()
+    {
+        await Console.Out.WriteLineAsync("DISPOSED");
+        Task = null;
     }
 
     public User() { }

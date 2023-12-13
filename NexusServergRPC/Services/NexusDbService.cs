@@ -73,27 +73,53 @@ public class NexusDbService : NexusDb.NexusDbBase{
 
                 User? temp_user = _context.Users.ToList<User>().Find(user => user.UserName == metadata.Get("UserName")?.Value && user.UserPassword == metadata.Get("UserPassword")?.Value);
 
-                await Console.Out.WriteLineAsync("Metadata == " + (metadata == null));
+
                 if (temp_user != null)
                 {
+                    await Console.Out.WriteLineAsync("LOGGIN == " + (temp_user == null));
 
                     User<LoginUserRequest, LoginUserResponse>? user = ObjectCaster<LoginUserRequest, LoginUserResponse>.Cast(NexusService.Server).Find(x => x.GetName == temp_user.UserName);
 
                     User<LoginUserRequest, LoginUserResponse> New_User = new User<LoginUserRequest, LoginUserResponse>(temp_user.UserName, temp_user.UserEmail, request, response);
+
                     if (user != null)
                     {
                         int index = ObjectCaster<LoginUserRequest, LoginUserResponse>.FindIndex(NexusService.Server, user);
 
-                        NexusService.Server.users[index] = New_User;
+                        ObjectCaster<LoginUserRequest, LoginUserResponse>.Cast(NexusService.Server).Find(x => x.GetName == temp_user.UserName).Terminate();
+
+                        NexusService.Server.users.RemoveAt(index);
+
+                        await response.WriteAsync(new LoginUserResponse
+                        {
+                            Response = true,
+                            ResponseMessage = "Successfully logged in"
+                        });
+
+                        await ProcessRequest<LoginUserRequest, LoginUserResponse>.ProcessStreamAsync(request, false);
+
+                        NexusService.Server.users.Add(New_User);
+                        await Console.Out.WriteLineAsync("N-Count: " + NexusService.Server.users.Count);
+                        await New_User.SetTask(ProcessRequest<LoginUserRequest, LoginUserResponse>.ProcessStreamAsync(request, New_User));
                     }
                     else
                     {
+                        await Console.Out.WriteLineAsync("UWU" + NexusService.Server.users.Count);
+
+                        await response.WriteAsync(new LoginUserResponse
+                        {
+                            Response = true,
+                            ResponseMessage = "Successfully logged in"
+                        });
+
+                        await ProcessRequest<LoginUserRequest, LoginUserResponse>.ProcessStreamAsync(request, false);
+
+
                         NexusService.Server.users.Add(New_User);
+                        await New_User.SetTask(ProcessRequest<LoginUserRequest, LoginUserResponse>.ProcessStreamAsync(request, New_User));
                     }
 
-                    await response.WriteAsync(new LoginUserResponse { Response = true });
-
-                    await ProcessRequest<LoginUserRequest, LoginUserResponse>.ProcessStreamAsync(request, New_User);
+                  
                 }
                 else
                 {
@@ -102,7 +128,9 @@ public class NexusDbService : NexusDb.NexusDbBase{
 
                     NexusService.Server.users.Add(new User<LoginUserRequest, LoginUserResponse>(metadata.Get("UserName")?.Value, metadata.Get("UserEmail")?.Value, request, response));
 
-                    await response.WriteAsync(new LoginUserResponse { Response = false });
+                    await response.WriteAsync(new LoginUserResponse { Response = false,
+                        ResponseMessage = "Failed to login"
+                    });
 
                     await ProcessRequest<LoginUserRequest, LoginUserResponse>.ProcessStreamAsync(request, false);
                 }
