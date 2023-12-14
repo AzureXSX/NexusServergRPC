@@ -107,8 +107,14 @@ public class NexusService : Nexus.NexusBase
         string receiver = request.Message.ReceiverName;
         foreach (var user in list)
         {
-            if(user.GetName == sender)
+            if(user.GetName == receiver)
             {
+
+
+                var senderId = _context.Users.ToList().Find(x => x.UserName == sender);
+
+                var receiverId = _context.Users.ToList().Find(x => x.UserName == receiver);
+
                 await user.response_stream.WriteAsync(new LoginUserResponse
                 {
                     Message = new MessageX
@@ -117,12 +123,16 @@ public class NexusService : Nexus.NexusBase
                         SenderName = sender,
                         ReceiverName = receiver,
                         ExtraContent = request.Message.ExtraContent
+                    },
+                    MessageXUX = new MessageXUX
+                    {
+                        MsgText = request.Message.MsgText,
+                        SenderName = sender,
+                        ReceiverAvatar = ByteString.CopyFrom(receiverId.UserAvatar),
+                        SenderAvatar = ByteString.CopyFrom(senderId.UserAvatar),
                     }
                 });
 
-                var senderId = _context.Users.ToList().Find(x => x.UserName ==  sender);
-
-                var receiverId = _context.Users.ToList().Find(x => x.UserName == receiver);
 
                 var msg = new Entity.Message()
                 {
@@ -177,6 +187,39 @@ public class NexusService : Nexus.NexusBase
             IsSended = false,
         });
 
+    }
+
+
+    public override async Task<GetResponse> GetMessagesForUser(GetRequest request, ServerCallContext context)
+    {
+        var list = new List<Entity.Message>();
+
+        var senderId = _context.Users.ToList().Find(x => x.UserName == request.SenderName);
+        var receiverId = _context.Users.ToList().Find(x => x.UserName == request.ReceiverName);
+
+        foreach (Entity.Message message in _context.Messages.ToList())
+        {
+            if((message.SenderId == senderId.Id && message.ReceiverId == receiverId.Id) || (message.ReceiverId == senderId.Id && message.SenderId == receiverId.Id))
+            {
+                list.Add(message);
+            }
+        }
+
+        GetResponse response = new GetResponse();
+        
+        foreach (Entity.Message message in list)
+        {
+            response.Messages.Add(new MessageGet
+            {
+                MsgText = message.MsgText,
+                ExtraContent = ByteString.CopyFrom(message.ExtraContent),
+                SenderAvatar = ByteString.CopyFrom(senderId.UserAvatar),
+                ReceiverAvatar = ByteString.CopyFrom(receiverId.UserAvatar),
+                SenderName = message.SenderId == senderId.Id ? senderId.UserName : receiverId.UserName,
+            });
+        }
+
+        return await Task.FromResult(response);
     }
 
 }

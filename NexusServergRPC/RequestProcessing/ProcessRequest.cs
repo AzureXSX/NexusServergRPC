@@ -45,19 +45,19 @@ namespace NexusServergRPC.RequestProcessing
             }
             catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled || ex.StatusCode == StatusCode.Aborted)
             {
-
+                NexusService.Server?.users.Remove(user);
             }
             catch (IOException)
             {
-
+                NexusService.Server?.users.Remove(user);
             }
             catch (ConnectionAbortedException)
             {
-
+                NexusService.Server?.users.Remove(user);
             }
             catch (SocketException)
             {
-
+                NexusService.Server?.users.Remove(user);
             }
             return false;
         }
@@ -112,19 +112,19 @@ namespace NexusServergRPC.RequestProcessing
             }
             catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled || ex.StatusCode == StatusCode.Aborted)
             {
-
+                NexusService.Server?.users.Remove(user);
             }
             catch (IOException)
             {
-
+                NexusService.Server?.users.Remove(user);
             }
             catch (ConnectionAbortedException)
             {
-
+                NexusService.Server?.users.Remove(user);
             }
             catch (SocketException)
             {
-
+                NexusService.Server?.users.Remove(user);
             }
             return false;
         }
