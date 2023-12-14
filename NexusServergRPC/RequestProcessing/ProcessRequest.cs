@@ -64,12 +64,12 @@ namespace NexusServergRPC.RequestProcessing
 
         public static async Task<bool> ProcessStreamAsync(IAsyncStreamReader<SignUpRequest> requestStream, bool close)
         {
-            await Console.Out.WriteLineAsync("PROCESSING <SignUpRequest>");
+            await Console.Out.WriteLineAsync("PROCESSING <SignUpRequest>  CLOSED");
             try
             {
                 while (await requestStream.MoveNext())
                 {
-                    Thread.Sleep(1000);
+                    break;
                 }
                 await Console.Out.WriteLineAsync("ENDED SIGNUP");
             }

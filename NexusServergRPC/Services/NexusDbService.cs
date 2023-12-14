@@ -9,11 +9,10 @@ using NexusServergRPC.Server;
 using NexusServergRPC.RequestProcessing;
 using Google.Protobuf;
 using NexusServergRPC.Models;
+using Microsoft.AspNetCore.Hosting.Server;
 
 public class NexusDbService : NexusDb.NexusDbBase{
-
     private readonly NexusContext _context;
-
     public NexusDbService(NexusContext context)
     {
         _context = context;
@@ -31,7 +30,8 @@ public class NexusDbService : NexusDb.NexusDbBase{
             {
                 await response.WriteAsync(new SignUpResponse
                 {
-                    Response = false
+                    Response = false,
+                    ResponseMessage = "User already exist."
                 });
 
                 await ProcessRequest<SignUpRequest, SignUpResponse>.ProcessStreamAsync(request, false);
@@ -44,14 +44,16 @@ public class NexusDbService : NexusDb.NexusDbBase{
 
             await response.WriteAsync(new SignUpResponse
             {
-                Response = true
+                Response = true,
+                ResponseMessage = "Successfully Signed Up."
             });
 
-            NexusServergRPC.Models.User<SignUpRequest, SignUpResponse> user = new NexusServergRPC.Models.User<SignUpRequest, SignUpResponse>(New_User.UserName, New_User.UserEmail, request, response);
+            await ProcessRequest<SignUpRequest, SignUpResponse>.ProcessStreamAsync(request, false);
+            return;
+            //NexusServergRPC.Models.User<SignUpRequest, SignUpResponse> user = new NexusServergRPC.Models.User<SignUpRequest, SignUpResponse>(New_User.UserName, New_User.UserEmail, request, response);
 
-            NexusService.Server?.users.Add(user);
-
-            await ProcessRequest<SignUpRequest, SignUpResponse>.ProcessStreamAsync(request, user);
+            //NexusService.Server?.users.Add(user);
+            //await user.SetTask(ProcessRequest<SignUpRequest, SignUpResponse>.ProcessStreamAsync(request, false));
         }
         catch(SqlException){
 
@@ -86,14 +88,15 @@ public class NexusDbService : NexusDb.NexusDbBase{
                     {
                         int index = ObjectCaster<LoginUserRequest, LoginUserResponse>.FindIndex(NexusService.Server, user);
 
-                        ObjectCaster<LoginUserRequest, LoginUserResponse>.Cast(NexusService.Server).Find(x => x.GetName == temp_user.UserName).Terminate();
+                        ObjectCaster<LoginUserRequest, LoginUserResponse>.Cast(NexusService.Server)?.Find(x => x.GetName == temp_user.UserName).Terminate();
 
                         NexusService.Server.users.RemoveAt(index);
 
                         await response.WriteAsync(new LoginUserResponse
                         {
                             Response = true,
-                            ResponseMessage = "Successfully logged in"
+                            ResponseMessage = "Successfully logged in",
+                            UserAvatar = ByteString.CopyFrom(temp_user.UserAvatar)
                         });
 
                         await ProcessRequest<LoginUserRequest, LoginUserResponse>.ProcessStreamAsync(request, false);
@@ -109,7 +112,8 @@ public class NexusDbService : NexusDb.NexusDbBase{
                         await response.WriteAsync(new LoginUserResponse
                         {
                             Response = true,
-                            ResponseMessage = "Successfully logged in"
+                            ResponseMessage = "Successfully logged in",
+                            UserAvatar = ByteString.CopyFrom(temp_user.UserAvatar)
                         });
 
                         await ProcessRequest<LoginUserRequest, LoginUserResponse>.ProcessStreamAsync(request, false);
@@ -128,7 +132,8 @@ public class NexusDbService : NexusDb.NexusDbBase{
 
                     NexusService.Server.users.Add(new User<LoginUserRequest, LoginUserResponse>(metadata.Get("UserName")?.Value, metadata.Get("UserEmail")?.Value, request, response));
 
-                    await response.WriteAsync(new LoginUserResponse { Response = false,
+                    await response.WriteAsync(new LoginUserResponse { 
+                        Response = false,
                         ResponseMessage = "Failed to login"
                     });
 
@@ -158,5 +163,35 @@ public class NexusDbService : NexusDb.NexusDbBase{
 
 
         return await Task.FromResult(new LogOutResponse { Response = true });
+    }
+
+
+    public override async Task<GetContactsResponse> GetContacts(GetContactsRequest request, ServerCallContext context)
+    {
+
+        var temp_user = _context.Users.ToList().Find(x => x.UserName == request.UserName);
+
+        List<ContactX> contacts = new List<ContactX>();
+
+        _context.Contacts.ToList().ForEach(contact =>
+        {
+            if(contact.FirstU == temp_user.Id || contact.SecondU == temp_user.Id)
+            {
+                contacts.Add(new ContactX
+                {
+                    UserName = temp_user.Id == contact.FirstU ? _context.Users.ToList().Find(x => x.Id == contact.SecondU).UserName :
+                    _context.Users.ToList().Find(x => x.Id == contact.FirstU).UserName,
+                    UserAvatar = temp_user.Id == contact.FirstU ? ByteString.CopyFrom(_context.Users.ToList().Find(x => x.Id == contact.SecondU).UserAvatar) :
+                    ByteString.CopyFrom(_context.Users.ToList().Find(x => x.Id == contact.FirstU).UserAvatar),
+                    LastMessage = "Last message"
+                });
+            }
+        });
+       
+        GetContactsResponse response = new GetContactsResponse();
+
+        response.ContactList.AddRange(contacts);
+
+        return response;
     }
 }

@@ -14,6 +14,29 @@ service NexusDb{
     rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
 
     rpc RetrieveToken(RetrieveTokenRequest) returns (RetrieveTokenResponse);
+
+    rpc GetContacts(GetContactsRequest) returns (GetContactsResponse);
+}
+
+message MessageX{
+    string MsgText = 1;
+    bytes ExtraContent = 2;
+    string SenderName = 3;
+    string ReceiverName = 4;
+}
+
+message GetContactsRequest{
+    string UserName = 1;
+}
+
+message ContactX{
+     string UserName = 1;
+     string LastMessage = 2;
+     bytes UserAvatar = 3;
+}
+
+message GetContactsResponse{
+    repeated ContactX contact_list = 1;
 }
 
 message ValidateTokenRequest{
@@ -49,6 +72,8 @@ message LoginUserRequest{
 message LoginUserResponse{
     string ResponseMessage = 1;
     bool Response = 2;
+    bytes UserAvatar = 3;
+    MessageX message = 4;
 }
 
 message SignUpRequest{
@@ -58,5 +83,6 @@ message SignUpRequest{
 }
 
 message SignUpResponse{
-    bool Response = 1;
+    string ResponseMessage = 1;
+    bool Response = 2;
 }

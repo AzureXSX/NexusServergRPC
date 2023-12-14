@@ -6,14 +6,19 @@ using Google.Protobuf.WellKnownTypes;
 using NexusServergRPC.Server;
 using NexusServergRPC.RequestProcessing;
 using Google.Protobuf;
+using NexusContext;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 public class NexusService : Nexus.NexusBase
 {
     private static Nexus_Server? _server;
+    private readonly NexusContext _context;
 
-    public NexusService(Nexus_Server server)
+    public NexusService(Nexus_Server server, NexusContext context)
     {
         _server = server;
+        _context = context;
     }
 
     public static Nexus_Server? Server { get { return _server; } }
@@ -76,12 +81,13 @@ public class NexusService : Nexus.NexusBase
     public override async Task<EmptyX> SendMessageToStreams(CreateMsgRequest message, ServerCallContext context)
     {
         await Console.Out.WriteLineAsync("Count = " + _server.users.Count);
-        foreach (var user in ObjectCaster<ConnectedX, CreateMsgRequest>.Cast(_server))
+        foreach (var user in ObjectCaster<LoginUserRequest, LoginUserResponse>.Cast(_server))
         {
             await Console.Out.WriteLineAsync(user.response_stream + "");
             try
             {
-                await user.response_stream.WriteAsync(message);
+                MessageX x = new MessageX { };
+                await user.response_stream.WriteAsync(new LoginUserResponse { Message = x });
                 await Console.Out.WriteLineAsync(message.ReceiverEmail + " X");
             }
             catch (Exception ex)
@@ -90,6 +96,87 @@ public class NexusService : Nexus.NexusBase
             }
         }
         return await Task.FromResult(new EmptyX());
+    }
+
+
+    public override async Task<SendResponse> SendMessageToUser(SendRequest request, ServerCallContext context)
+    {
+        var list = ObjectCaster<LoginUserRequest, LoginUserResponse>.Cast( _server);
+
+        string sender = request.Message.SenderName;
+        string receiver = request.Message.ReceiverName;
+        foreach (var user in list)
+        {
+            if(user.GetName == sender)
+            {
+                await user.response_stream.WriteAsync(new LoginUserResponse
+                {
+                    Message = new MessageX
+                    {
+                        MsgText = request.Message.MsgText,
+                        SenderName = sender,
+                        ReceiverName = receiver,
+                        ExtraContent = request.Message.ExtraContent
+                    }
+                });
+
+                var senderId = _context.Users.ToList().Find(x => x.UserName ==  sender);
+
+                var receiverId = _context.Users.ToList().Find(x => x.UserName == receiver);
+
+                var msg = new Entity.Message()
+                {
+                    SenderId = senderId.Id,
+                    ReceiverId = receiverId.Id,
+                    ExtraContent = request.Message?.ExtraContent.ToByteArray(),
+                    MsgText = request.Message?.MsgText
+                };
+
+                await _context.Messages.AddAsync(msg);
+
+                await _context.SaveChangesAsync();
+
+                return await Task.FromResult(new SendResponse
+                {
+                    IsSended = true,
+                });
+            }
+        }
+
+        var listDb = _context.Users.ToList();
+
+        foreach(var user in listDb)
+        {
+            if(user.UserName == receiver)
+            {
+                var senderId = _context.Users.ToList().Find(x => x.UserName == sender);
+
+                var receiverId = _context.Users.ToList().Find(x => x.UserName == receiver);
+
+                var msg = new Entity.Message()
+                {
+                    SenderId = senderId.Id,
+                    ReceiverId = receiverId.Id,
+                    ExtraContent = request.Message?.ExtraContent.ToByteArray(),
+                    MsgText = request.Message?.MsgText
+                };
+
+                await _context.Messages.AddAsync(msg);
+
+                await _context.SaveChangesAsync();
+
+                return await Task.FromResult(new SendResponse
+                {
+                    IsSended = true,
+                });
+            }
+        }
+
+        return await Task.FromResult(new SendResponse
+        {
+            IsSended = false,
+        });
+
     }
 
 }
